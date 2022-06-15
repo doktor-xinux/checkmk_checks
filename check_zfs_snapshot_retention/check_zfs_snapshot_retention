@@ -201,8 +201,8 @@ if ! zfs list "$OPT_DATASET" > /dev/null 2>&1; then
 fi
 
 
-if [ "$OPT_WARNING" -gt "$OPT_CRITICAL" ]; then
-	echo '-w OPT_WARNING must be smaller than -c OPT_CRITICAL'
+if [ "$OPT_WARNING" -lt "$OPT_CRITICAL" ]; then
+	echo '-w OPT_WARNING must be greater than -c OPT_CRITICAL'
 	_usage >&2
 	exit $STATE_UNKNOWN
 fi
