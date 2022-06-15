@@ -1,0 +1,59 @@
+#!/usr/local/bin/bash
+IPSEC="ipsec"
+function check_vpn()
+{
+test -z "$VPN" && { echo "No VPN: $VPN given" ; exit 3 ; }
+        if test -n "$GW"
+                then
+                        if ! ping -c 1 -W 1 $GW > /dev/null
+                    then
+                                echo "GW: $GW not reachable"
+                                exit 2
+                                fi
+        fi
+        if  $IPSEC status  $VPN | egrep -q  "INSTALLED|ROUTED"
+                then
+                        if [ -n "$REF" -a -n "$SIP" -a -z "$PORT" ]
+                                then
+                        if ! ping -S $SIP  -c 1 -W 1 $REF > /dev/null
+                        then
+                              echo "REF: $REF not reachable"
+                                    exit 1
+                                         else
+                                        echo "REF: $REF PING  ok"
+                                         exit 0
+                     		fi
+       elif [ -n "$REF" -a -n "$SIP" -a -n "$PORT" ]
+         then
+           if  ! nc -s $SIP -z -w 1 $REF $PORT > /dev/null 2>&1
+              then
+                echo "REF: $REF SERVICE  not reachable"
+                exit 1
+              else
+                echo "REF: $REF SERVICE ok"
+                exit 0
+            fi 
+
+
+                      else
+                        echo "VPN: $VPN ok"
+                        exit 0
+                     fi     
+                else
+                        echo "$VPN problem"
+                        exit 2
+        fi
+}
+
+while getopts r:g:s:v:p: opt
+do
+   case $opt in
+       r) REF=$OPTARG;;
+       g) GW=$OPTARG;;
+       s) SIP=$OPTARG;;
+       v) VPN=$OPTARG;;
+       p) PORT=$OPTARG;; 
+       ? ) echo "USAGE: $0 -r REF -p PORT -g GW -s IP -v VPN"; exit 2 ;;
+   esac
+done
+check_vpn $VPN
