@@ -1,0 +1,65 @@
+#!/bin/bash
+IPSEC="sudo ipsec"
+function check_vpn()
+{
+test -z "$VPN" && { echo "No VPN: $VPN given" ; exit 3 ; }
+	if test -n "$GW" 
+		then 
+			if ! ping -c 1 -w 1 $GW > /dev/null 
+		    then 
+					echo "GW: $GW not reachable"
+				exit 2 	
+				fi
+	fi 
+	if  $IPSEC status  $VPN | egrep -q "INSTALLED|ROUTED"
+		then 
+			if [ -n "$REF" -a -n "$SIP" -a -z "$PORT" ]
+			  then 
+	     	  if ! ping -I $SIP  -c 1 -w 1 $REF > /dev/null 
+ 		       	then 
+					    echo "REF: $REF not reachable"
+					    exit 1 	
+						else
+   						echo "REF: $REF PING ok"
+							exit 0
+            fi     
+			elif [ -n "$REF" -a -n "$SIP" -a -n "$PORT" ]
+         then
+           if  ! netcat -s $SIP -z -w 1 $REF $PORT > /dev/null
+ 		        	then 
+			 		      echo "REF: $REF SERVICE  not reachable"
+						    exit 1 	
+				 			else
+   							echo "REF: $REF SERVICE ok"
+								exit 0
+						fi	
+      else
+			  echo "VPN: $VPN ok"
+			  exit 0
+       fi 
+		else
+			echo "$VPN tunnel not exist"
+			exit 2
+	fi
+}
+
+while getopts r:g:s:v:p: opt
+ 
+do
+   case $opt in
+       r) REF=$OPTARG;;
+       g) GW=$OPTARG;;
+       s) SIP=$OPTARG;;
+       v) VPN=$OPTARG;;	 
+       p) PORT=$OPTARG;;	 
+       ?) echo "USAGE: $0 -r REF -g GW -s IP -v VPN"; exit 2 ;;
+   esac
+done
+#if [[ "$(hostname -s)" == "$(crm resource status vpn-cluster | awk '{ print $6 }')" ]]
+#if [[ "active" == "$(cat /var/run/cluster)" ]]
+#then
+check_vpn $VPN
+#else
+#echo "STANDBY node" 
+#exit 0 
+#fi
